@@ -11,6 +11,10 @@ public class PreferenceStorage {
 	//Storage for sound preferences
 	SharedPreferences prefs;
 	
+	private static Set<String> deFault = new HashSet<String>();
+	
+	
+	
 	//Keys for storing preferences
 	public static final String ALL_SOUNDS = "allSounds";
 	public static final String ON = "_on";
@@ -39,6 +43,7 @@ public class PreferenceStorage {
 		Iterator<String> it = getAllSounds(prefs, new HashSet<String>()).iterator();
 		while(it.hasNext()) {
 			String soundName = it.next();
+			System.out.println(soundName);
 			if (isSoundOn(prefs, soundName)) {
 				result.add(soundName);
 			}
@@ -47,8 +52,9 @@ public class PreferenceStorage {
 	}
 	
 	public static void setAllSounds(SharedPreferences prefs) {
+		
 		SharedPreferences.Editor editor = prefs.edit();
-		editor.putStringSet(PreferenceStorage.ALL_SOUNDS, new HashSet<String>());
+		editor.putStringSet(PreferenceStorage.ALL_SOUNDS, deFault);
 		editor.commit();
 	}
 	

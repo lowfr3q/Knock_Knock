@@ -10,13 +10,18 @@ import be.hogent.tarsos.dsp.onsets.PercussionOnsetDetector;
 import be.hogent.tarsos.dsp.pitch.PitchDetectionHandler;
 import be.hogent.tarsos.dsp.pitch.PitchDetectionResult;
 import be.hogent.tarsos.dsp.pitch.PitchProcessor;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
 import android.os.IBinder;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.TaskStackBuilder;
 
 
 
@@ -55,13 +60,13 @@ public class backGroundListener extends Service implements OnsetHandler, PitchDe
 		//Get prefs
 		SharedPreferences prefs = getSharedPreferences(PREFS_NAME, 0);
 		
-		//set up recorder
 		bufferSize = AudioRecord.getMinBufferSize(SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);					
 		buffer = new byte[bufferSize];
 		final AudioRecord recorder = new AudioRecord(MediaRecorder.AudioSource.MIC, SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, bufferSize);
 		
+		
 		//set up "clap" detector //
-		final PercussionOnsetDetector pd = new PercussionOnsetDetector(SAMPLE_RATE, bufferSize/2, this, 65, 8);
+		final PercussionOnsetDetector pd = new PercussionOnsetDetector(SAMPLE_RATE, bufferSize/2, this, 100, 1);
 		
 		//set up "all" detector //
 		final PitchProcessor pp = new PitchProcessor( PitchProcessor.PitchEstimationAlgorithm.AMDF,SAMPLE_RATE,bufferSize,this);
@@ -80,11 +85,12 @@ public class backGroundListener extends Service implements OnsetHandler, PitchDe
 					ae.setFloatBufferWithByteBuffer(buffer);
 					
 					//WOZ for clap
-					if(checkedSounds.contains("Clap")){
+					
+					if(PreferenceStorage.isSoundOn(prefs, "Clap")){
 						pd.process(ae);
 					}
 					//Wos for all
-					if(checkedSounds.contains("Whistle")){
+					if(PreferenceStorage.isSoundOn(prefs, "Whistle")){
 						pp.process(ae);
 					}
 				}
@@ -99,6 +105,7 @@ public class backGroundListener extends Service implements OnsetHandler, PitchDe
 	@Override
 	public void handleOnset(double time, double salience) {
 		//only here to test out and make it run for claps
+		SharedPreferences prefs = getSharedPreferences(PREFS_NAME, 0);
 		notification = "Clap";
 		rec = false;
 		Intent i = new Intent(this, Notification_Screen.class);
@@ -113,9 +120,13 @@ public class backGroundListener extends Service implements OnsetHandler, PitchDe
 	public void handlePitch(PitchDetectionResult pitchDetectionResult,
 			AudioEvent audioEvent) {
 		//only here to test out and make it run for whistle
+		SharedPreferences prefs = getSharedPreferences(PREFS_NAME, 0);
 		if(pitchDetectionResult.isPitched()){
 			notification = "Whistle";
 			rec = false;
+			if(PreferenceStorage.isPushNotifOn(prefs, notification)){
+				sendPushNotification(notification);
+			}
 			Intent i = new Intent(this, Notification_Screen.class);
 			i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 			i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -125,4 +136,45 @@ public class backGroundListener extends Service implements OnsetHandler, PitchDe
 		}
 		
 	}
+
+	public void sendPushNotification(String Sound){
+		//http://developer.android.com/guide/topics/ui/notifiers/notifications.html
+		
+		// create notification builder for sound
+		NotificationCompat.Builder mBuilder =
+		        new NotificationCompat.Builder(this)
+		        .setSmallIcon(R.drawable.ic_launcher)
+		        .setContentTitle("Knock Knock")
+		        .setContentText(Sound);
+		
+		//
+		// Creates an explicit intent for the splash page, this will
+		//be used later in the task Stack
+		Intent resultIntent = new Intent(this, SplashPage.class);
+		
+		// The stack builder object will contain an artificial back stack for the
+		// started Activity.
+		// This ensures that navigating backward from the Activity leads out of
+		// your application to the Home screen.
+		TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
+		
+		// Adds the back stack for the Intent (but not the Intent itself)
+		stackBuilder.addParentStack(SplashPage.class);
+		
+		// Adds the Intent that starts the Activity to the top of the stack
+		stackBuilder.addNextIntent(resultIntent);
+		PendingIntent resultPendingIntent =
+		        stackBuilder.getPendingIntent(
+		            0,
+		            PendingIntent.FLAG_UPDATE_CURRENT
+		        );
+		mBuilder.setContentIntent(resultPendingIntent);
+		NotificationManager mNotificationManager =
+		    (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+		// mId allows you to update the notification later on (Currently set to zero).
+		mNotificationManager.notify(0, mBuilder.build());
+
+	}
+
 }
+
