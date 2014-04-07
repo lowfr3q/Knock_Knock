@@ -35,9 +35,8 @@ public class backGroundListener extends Service implements OnsetHandler, PitchDe
 	
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
-	    //TODO do something useful
-		rec = true;
-		//Get SharedPreferences and loud up sounds
+	    
+		//Get SharedPreferences and load up sounds
 		SharedPreferences prefs = getSharedPreferences(PREFS_NAME, 0);
 		checkedSounds = PreferenceStorage.getAllCheckedSounds(prefs);
 		notification = "";
@@ -53,23 +52,29 @@ public class backGroundListener extends Service implements OnsetHandler, PitchDe
 		return null;
 	}
 	private void listen(){	
+		//Get prefs
+		SharedPreferences prefs = getSharedPreferences(PREFS_NAME, 0);
+		
 		//set up recorder
 		bufferSize = AudioRecord.getMinBufferSize(SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);					
 		buffer = new byte[bufferSize];
 		final AudioRecord recorder = new AudioRecord(MediaRecorder.AudioSource.MIC, SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, bufferSize);
 		
 		//set up "clap" detector //
-		final PercussionOnsetDetector pd = new PercussionOnsetDetector(SAMPLE_RATE, bufferSize/2, this, 16, 8);
+		final PercussionOnsetDetector pd = new PercussionOnsetDetector(SAMPLE_RATE, bufferSize/2, this, 65, 8);
 		
 		//set up "all" detector //
 		final PitchProcessor pp = new PitchProcessor( PitchProcessor.PitchEstimationAlgorithm.AMDF,SAMPLE_RATE,bufferSize,this);
 		
 		//start recording
+		rec = PreferenceStorage.getIsListening(prefs);
 		recorder.startRecording();
 		tarForm= new be.hogent.tarsos.dsp.AudioFormat(SAMPLE_RATE,16,1,true,false);
 		Thread listen = new Thread(new Runnable(){
-			public void run(){	
+			public void run(){
+				SharedPreferences prefs = getSharedPreferences(PREFS_NAME, 0);
 				while (rec){
+					rec = PreferenceStorage.getIsListening(prefs);
 					int sig = recorder.read(buffer,0,bufferSize);
 					AudioEvent ae = new AudioEvent(tarForm, sig);
 					ae.setFloatBufferWithByteBuffer(buffer);
@@ -84,6 +89,7 @@ public class backGroundListener extends Service implements OnsetHandler, PitchDe
 					}
 				}
 				recorder.stop();
+				PreferenceStorage.setIsListening(prefs,false);
 			}
 		});
 		listen.start();

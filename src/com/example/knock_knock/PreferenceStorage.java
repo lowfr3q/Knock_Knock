@@ -18,6 +18,17 @@ public class PreferenceStorage {
 	public static final String PUSH_NOTIF = "_push";
 	public static final String ALERT_NOTIF = "_alert";
 	public static final String VIBRATE_NOTIF = "_vibrate";
+	public static final String LISTENING = "listening";
+	
+	public static boolean getIsListening (SharedPreferences prefs){
+		return prefs.getBoolean(LISTENING,false);
+	}
+	
+	public static void setIsListening(SharedPreferences prefs, boolean listenStatus){
+	      SharedPreferences.Editor editor = prefs.edit();
+	      editor.putBoolean(LISTENING, listenStatus);
+	      editor.commit();
+	}
 	
 	public static Set<String> getAllSounds(SharedPreferences prefs, Set<String> deFault) {
 		return prefs.getStringSet(PreferenceStorage.ALL_SOUNDS, deFault);

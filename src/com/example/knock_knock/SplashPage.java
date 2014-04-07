@@ -23,10 +23,9 @@ public class SplashPage extends Activity {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_splash_page);
-		
 		//checks prefs to alert us if we are listening
 		SharedPreferences prefs = getSharedPreferences(PREFS_NAME, 0);
-		setListening(prefs.getBoolean("listening", false));
+		setListening(PreferenceStorage.getIsListening(prefs));
 		
 		//initialize buttons (jic)
 		on = (Button) findViewById(R.id.onButton);
@@ -74,13 +73,8 @@ public class SplashPage extends Activity {
 	@Override
     protected void onStop(){
        super.onStop();
-      // We need an Editor object to make preference changes.
-      // All objects are from android.context.Context
-      SharedPreferences settings = getSharedPreferences(PREFS_NAME, 0);
-      SharedPreferences.Editor editor = settings.edit();
-      // saves if we are listening
-      editor.putBoolean("listening", isListening());
-      editor.commit();
+       SharedPreferences prefs = getSharedPreferences(PREFS_NAME, 0);
+       PreferenceStorage.setIsListening(prefs, isListening());
 	}
 
 	@Override
@@ -105,11 +99,15 @@ public class SplashPage extends Activity {
 	
 	public void startListening(){
 		setListening(true);
+		SharedPreferences prefs = getSharedPreferences(PREFS_NAME, 0);
+		PreferenceStorage.setIsListening(prefs,isListening());
 		Intent i = new Intent(this, backGroundListener.class);
 		this.startService(i);
 	}
 	public void stopListenting(){
 		setListening(false);
+		SharedPreferences prefs = getSharedPreferences(PREFS_NAME, 0);
+		PreferenceStorage.setIsListening(prefs,isListening());
 		Intent i = new Intent(this, backGroundListener.class);
 		this.stopService(i);
 	}
